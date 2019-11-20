@@ -1,19 +1,56 @@
-from sys import argv
 import argparse
 import glob
-import re
-import itertools
-from collections import defaultdict
+import requests
+import csv
+import matplotlib
+import pandas
 
-parser = argparse.ArgumentParser(description='Input a directory containing (in subdirectories for each strain) sequence files for cluster genes.')
-parser.add_argument('inputDir',
-                    help='Directory containing ONLY MapCoordinates.py output files (FASTA files of gene sequences). These can be in subdirectories if multiple strains.')
-parser.add_argument('outputFile',
-                    help='Desired name of output .txt file (saves to current working directory unless full path specified).')
-parser.add_argument('clusterLength',
-                    help='The number of genes in the complete cluster.')
+parser = argparse.ArgumentParser(description='Input a data file and see some things.')
+parser.add_argument('inFile',
+                    help='Input data file URL (API)')
+#parser.add_argument('outFile',
+#                    help='Output file')
 
 args = parser.parse_args()
-inputDir = args.inputDir
-outputFile = args.outputFile
-clusterLength = int(args.clusterLength)
+inFile = args.inFile
+#outFile = args.outFile
+
+#testData = requests.get("https://openprescribing.net/api/1.0/org_code/?q=Beaumont&format=json")
+
+try:
+	resp = requests.get(inFile)
+	#print(resp.json())
+	print("Good")
+except:
+	print("An error occured! Fuck!")
+
+
+
+data = pandas.read_csv("test.csv") 
+
+data.head()
+
+'''
+with open("test.csv") as inf:
+	df = csv.reader(inf, delimiter=',')
+	line_count = 0
+	for row in df:
+		if line_count == 0:
+			columnNames = row
+			print(columnNames)
+			#print('Column names are {", ".join(row)}')
+			line_count += 1
+		else:
+			#print(row)
+			line_count += 1
+	print('Processed ' + str(line_count) + ' lines.')
+'''
+
+
+
+
+
+
+
+
+
