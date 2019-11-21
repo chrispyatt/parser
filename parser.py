@@ -35,27 +35,25 @@ dateRange = args.dateRange
 groupSubset = args.groupSubset
 test = args.test
 
+# If the test option is set to True, this will run a test analysis.
 if test == 'True':
-	inFile = 'https://openprescribing.net/api/1.0/org_details/?org_type=practice&org=14L&format=json'
+	inFile = 'https://openprescribing.net/api/1.0/spending_by_practice/?code=5.1&org=14L&format=json'
 	xarg = 'date'
-	yarg = 'star_pu.oral_antibacterials_item'
+	yarg = 'quantity'
 	group = 'row_name'
 	dateRange = '2017-04-01|2018-04-01'
 	groupSubset = 'all'
 
-#testData = requests.get("https://openprescribing.net/api/1.0/org_code/?q=Beaumont&format=json")
-#https://openprescribing.net/api/1.0/org_details/?org_type=practice&org=14L&format=json
-
+# Get data from API (& check for error codes).
 try:
 	resp = requests.get(inFile)
-	
 	#print(resp.json())
-	print("Good")
+	print(resp.status_code)
 except:
 	print("An error occured! Fuck!")
 
 
-# Get nested json into flat dataframe
+# Get nested json into flat dataframe.
 df = pd.io.json.json_normalize(resp.json())
 
 
@@ -90,10 +88,11 @@ elif groupSubset != "all":
 	df_groupSubset = df.loc[df[group].isin(gS)]
 	plotGraph(df_groupSubset)
 	
+# Plot xarg against yarg, grouped by group (no subset).
 else:
-	# Plot xarg against yarg, grouped by group (no subset).
 	plotGraph(df)
 
+#Display the graph.
 plt.show()
 
 
