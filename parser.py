@@ -5,6 +5,7 @@ import re
 import itertools
 from collections import defaultdict
 
+
 parser = argparse.ArgumentParser(description='Input a directory containing (in subdirectories for each strain) sequence files for cluster genes.')
 parser.add_argument('inputDir',
                     help='Directory containing ONLY MapCoordinates.py output files (FASTA files of gene sequences). These can be in subdirectories if multiple strains.')
