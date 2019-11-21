@@ -19,7 +19,7 @@ inFile = args.inFile
 #outFile = args.outFile
 
 #testData = requests.get("https://openprescribing.net/api/1.0/org_code/?q=Beaumont&format=json")
-#https://openprescribing.net/api/1.0/org_details/?org_type=practice&org=14L
+#https://openprescribing.net/api/1.0/org_details/?org_type=practice&org=14L&format=json
 
 try:
 	resp = requests.get(inFile)
