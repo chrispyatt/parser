@@ -30,14 +30,20 @@ except:
 
 df = pd.DataFrame(resp.json())
 
-#print(df)
-#print(list(df.columns.values))
+print(list(df.columns.values))
 
-#df.plot(x='date', y='female_0_4')
+df2 = df['star_pu'].apply(pd.Series)
+df3 = pd.concat([df, df2], sort=False, join='inner')
 
-df.set_index('date', inplace=True)
-df.groupby('row_name')['female_0_4'].plot(legend=True)
+#print(df3)
+print(list(df3.columns.values))
+print(df3['date'])
 
+df3.plot(x='date', y='female_0_4')
+'''
+df3.set_index('date', inplace=True)
+df3.groupby('row_name')['oral_antibacterials_item'].plot(legend=True)
+'''
 plt.show()
 
 
