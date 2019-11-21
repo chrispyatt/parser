@@ -4,6 +4,9 @@ import requests
 import csv
 import matplotlib.pyplot as plt
 import pandas as pd
+import json
+from pandas.io.json import json_normalize
+
 
 parser = argparse.ArgumentParser(description='Input a data file and see some things.')
 parser.add_argument('inFile',
@@ -27,23 +30,24 @@ except:
 	print("An error occured! Fuck!")
 
 
+#df = pd.DataFrame(resp.json())
 
-df = pd.DataFrame(resp.json())
+df = pd.io.json.json_normalize(resp.json())
 
-print(list(df.columns.values))
+#print(list(df.columns.values))
 
-df2 = df['star_pu'].apply(pd.Series)
-df3 = pd.concat([df, df2], sort=False, join='inner')
+#df2 = df['star_pu'].apply(pd.Series)
+#df3 = pd.concat([df, df2], sort=False, join='inner')
 
 #print(df3)
-print(list(df3.columns.values))
-print(df3['date'])
+#print(list(df3.columns.values))
+#print(df3['date'])
 
-df3.plot(x='date', y='female_0_4')
-'''
-df3.set_index('date', inplace=True)
-df3.groupby('row_name')['oral_antibacterials_item'].plot(legend=True)
-'''
+#df.plot(x='date', y='female_0_4')
+
+df.set_index('date', inplace=True)
+df.groupby('row_name')['star_pu.oral_antibacterials_item'].plot(legend=True)
+
 plt.show()
 
 
