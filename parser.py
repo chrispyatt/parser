@@ -9,14 +9,14 @@ from dateutil.parser import parse
 from pandas.io.json import json_normalize
 
 # Specify command line arguments (including defaults for optional args)
-parser = argparse.ArgumentParser(description='Input a data file and see some things.')
-parser.add_argument('inFile',
+parser = argparse.ArgumentParser(description='Input a data file and see some things. Either specify the API and columns for analysis here (see options below) or run parser with no options and input when asked.')
+parser.add_argument('--inFile', dest='inFile', default="",
                     help='Input data file URL (API)')
-parser.add_argument('x_axis',
+parser.add_argument('--x_axis', dest='x_axis', default="",
                     help='What column would you like to use (from your API data) as the x-axis?')
-parser.add_argument('y_axis',
+parser.add_argument('--y_axis', dest='y_axis', default="",
                     help='What column would you like to use (from your API data) as the y-axis?')
-parser.add_argument('groupby',
+parser.add_argument('--groupby', dest='groupby', default="",
                     help='What column would you like to use (from your API data) to group the data (e.g. by practice)?')
 parser.add_argument('--dateRange', dest='dateRange', default="all",
                     help='The range of dates (if x axis is time) for which to plot. Format as [date1|date2].')
@@ -35,6 +35,13 @@ dateRange = args.dateRange
 groupSubset = args.groupSubset
 test = args.test
 
+# If no arguments given at the command line, ask for user input.
+if inFile == "":
+	inFile = int(input("Please enter your age: "))
+
+
+
+
 # If the test option is set to True, this will run a test analysis.
 if test == 'True':
 	inFile = 'https://openprescribing.net/api/1.0/spending_by_practice/?code=5.1&org=14L&format=json'
@@ -49,8 +56,12 @@ try:
 	resp = requests.get(inFile)
 	#print(resp.json())
 	print(resp.status_code)
+	if resp.status_code != "200":
+		print('An error occured. Please check the API')
+		exit(1)
 except:
 	print("An error occured! Fuck!")
+	exit(1)
 
 
 # Get nested json into flat dataframe.
