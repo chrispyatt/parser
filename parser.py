@@ -35,12 +35,6 @@ dateRange = args.dateRange
 groupSubset = args.groupSubset
 test = args.test
 
-# If no arguments given at the command line, ask for user input.
-if inFile == "":
-	inFile = int(input("Please enter your age: "))
-
-
-
 
 # If the test option is set to True, this will run a test analysis.
 if test == 'True':
@@ -51,17 +45,46 @@ if test == 'True':
 	dateRange = '2017-04-01|2018-04-01'
 	groupSubset = 'all'
 
-# Get data from API (& check for error codes).
-try:
-	resp = requests.get(inFile)
-	#print(resp.json())
-	print(resp.status_code)
-	if resp.status_code != "200":
-		print('An error occured. Please check the API')
+def getAPIresponse(search):
+	'''
+	Get data from API (& check for error codes).
+	'''
+	try:
+		resp = requests.get(inFile)
+		#print(resp.json())
+		print(resp.status_code)
+		if str(resp.status_code) != "200":
+			print('An error occured. Please check the API')
+			exit(1)
+		else: return resp
+	except:
+		print("An error occured! Fuck!")
 		exit(1)
-except:
-	print("An error occured! Fuck!")
-	exit(1)
+
+# If no arguments given at the command line, ask for user input. Start with API interrogation.
+if inFile == "":
+	searchTerms = ""
+	inp = input("What CCG would you like to look at?: ")
+	print(getAPIresponse('/api/1.0/org_code/?q=' + inp))
+
+
+	inFile = 'https://openprescribing.net/api/1.0/spending_by_practice/?' + searchTerms	
+	resp = getAPIresponse(inFile)	
+
+# Continue getting user input.
+if xarg == "":
+	xarg = input("Please enter the column to plot on the x-axis: ")
+if yarg == "":
+	yarg = input("Please enter the column to plot on the y-axis: ")
+if group == "":
+	group = input("Please enter the column by which you'd like to group the plot data (e.g. practice): ")
+if dateRange == "":
+	dateRange = input("Please enter a date range in the format [date1|date2], or type [all] for all dates: ")
+if groupSubset == "":
+	groupSubset = input("Please enter a subset (list of values in format [one|two|three]) or type [all] for all values: ")
+
+
+resp = getAPIresponse(inFile)
 
 
 # Get nested json into flat dataframe.
