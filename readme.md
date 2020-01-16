@@ -1,6 +1,6 @@
 This repo contains the programming assignment for Chris Pyatt and Simon Lam.
 
-The repo contains 4 files. The main program is parser.py. There are also two test CSVs for testing without internet connection, this README, and a Jupyter notebook that runs the stats analysis separately.
+The repo contains 5 files. The main program is parser.py. There are also two test CSVs for testing without internet connection, this README, and a Jupyter notebook that runs the stats analysis separately.
 
 Parser.py 
 
