@@ -18,7 +18,9 @@ from bokeh.plotting import figure, show, output_notebook, output_file, ColumnDat
 from bokeh.models import HoverTool
 
 # Specify command line arguments (including defaults for optional args)
-parser = argparse.ArgumentParser(description='''Input a data file (in the form of an API link) and see some summary statistics for a time period of your choice. Use the -h option for info.''')
+parser = argparse.ArgumentParser(description='''Input a data file (in the form of an API link) and see some summary statistics for a time period of your choice. Use the -h option for info.
+                                                \n
+                                                Authors: Chris Pyatt \& Simon Lam''')
 group = parser.add_mutually_exclusive_group()
 parser.add_argument('-i', '--inFile', dest='inFile', default=None,
                     help='''Input data file URL (API) as a list encased in double-quotes and separated by single spaces, e.g. \"1\" or \"1 2\", etc. 
@@ -50,7 +52,7 @@ parser.add_argument('--plots', dest='plots', choices=['1','2','3','4'], default=
 
 # Set given arguments to variables to be used later.
 args = parser.parse_args()
-inFile = args.inFile.split(" ")
+inFile = args.inFile
 xarg = args.x_axis
 yarg = args.y_axis
 group = args.groupby
@@ -89,7 +91,7 @@ if testOffline:
     groupSubset = 'all'
     plots = '4'
     df_list = []
-    for inp in inFile:
+    for inp in inFile.split(" "):
         df_list.append(pd.read_csv(inp))
     #print(df_list)
     #print(len(df_list))
@@ -108,7 +110,7 @@ else:
     # Get data from each API (& check for error codes), then merge into single dataframe.
     print('\nRetrieving data...')
     df_list = []
-    for inp in inFile:
+    for inp in inFile.split(" "):
         try:
             resp = requests.get(inp)
             #print(resp.json())
