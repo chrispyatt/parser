@@ -36,6 +36,10 @@ group.add_argument('--test', dest='test', action="store_true",
                     help='Run the test dataset to make sure things are working. Requires internet connection for test API. If no internet access use --testOffline instead)')
 group.add_argument('--testOffline', dest='testOffline', action="store_true",
                     help='Run the offline test dataset to make sure things are working (if you have no internet access and therefore no access to the test API).')
+group.add_argument('--plots', dest='plots', choices=[1,2,3,4],
+                    help='''Choose which plots you\'d like to display. Option 1 will display a line graph of your chosen variables (this can be unwieldy with larger datasets so we advise only using this plot for smaller subsets). 
+                            Option 2 will display boxplots and line graphs showing outliers and standard deviation. Option 3 will display an interactive Bokeh graph of the same information as option 2, with mouse-over functionality.
+                            Option 4 will display all of the above.''')
 
 
 # Set given arguments to variables to be used later.
@@ -48,6 +52,7 @@ dateRange = args.dateRange
 groupSubset = args.groupSubset
 test = args.test
 testOffline = args.testOffline
+plots = args.plots
 
 
 # If the test option is set to True, this will run a test analysis.
@@ -58,6 +63,8 @@ if test:
     group = 'row_name'
     dateRange = '2017-04-01|2018-04-01'
     groupSubset = 'all'
+    plots = 3
+    
 
 # If the testOffline option is set to True, this will run a test analysis without reliance on an internet connection.
 if testOffline:
@@ -67,6 +74,7 @@ if testOffline:
     group = 'row_name'
     dateRange = '2017-04-01|2018-04-01'
     groupSubset = 'all'
+    plots = 4
     df_list = []
     for inp in inFile:
         df_list.append(pd.read_csv(inp))
@@ -101,13 +109,13 @@ else:
         for dframe in df_list:
             df = df.merge(dframe, how='inner')
 
-#print(df.head)
-#print(df.tail)
+
 # Normalising yarg per 1000 patients.
 print('\nNormalising ' + yarg + '...')
 yarg_n = pd.Series(df[yarg]/(0.001*df['total_list_size']))
 # Merging normalised yarg into whole dataframe.
-df = df.merge(yarg_n.rename('yarg_n'), how='inner', left_index=True, right_index=True)
+norm = 'normalised_' + yarg
+df = df.merge(yarg_n.rename(norm), how='inner', left_index=True, right_index=True)
 
 
 # Shows datatypes of variables.
@@ -117,81 +125,174 @@ print(df.info())
 print("\nNumber of NULL values:")
 print(df.isna().sum())
 
-#print(df.head)
-#print(df.tail)
-# Subsetting the data by timepoints or by practises using dictionaries.
+
+# Subsetting the data by timepoints using dictionaries.
 print('\nCreating timepoint dictionaries...')
 date={}
 for i in df['date']:
     date[i] = df[df['date'] == i]
-prac={}
-for i in df['row_name']:
-    prac[i] = df['row_name'][df['row_name'] ==i]
     
     
-# Extracting outliers for each time point using matplotlib.cbook's boxplot_stats, and putting it into a list.
-print('\nExtracting outliers...')
-outliers = []
-for i in date:
-    outliers.append([y for stat in boxplot_stats(date[i]['yarg_n']) for y in stat['fliers']])
-# Flatten to 2D list (non nested).
-flat = []
-for sublist in outliers:
-    for item in sublist:
-        flat.append(item)
-        
-
-
-# Makes new column which determines if the yarg_n value is an outlier.
-print('\nAssessing outliers...')
-df['outlier'] = df['yarg_n'].isin(flat)
-
-    
-def plotGraphs(dataF):
+def plotLine(dataF):
     '''
     This function plots a line graph based on whatever dataframe it is given. 
     The variables plotted are the same as for the rest of the script, but possibly a subset.
-    
-    It will also plot boxplots of the specified Y variable over time, with and without outliers.
+    This can be difficult to interpret if given a very large dataset as it is plotting the raw data.
     '''
-    # Set figure size for later plots.
-    fig = plt.figure(figsize=(24,16))
-
     # Line graph of specified columns.
     dataF.set_index(xarg, inplace=True)
     lineplot = dataF.groupby(group, as_index=False)[yarg].plot(legend=True)
     plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
     dataF.reset_index(inplace=True)
+    
+    return
+
+
+def outlierDF(dataF, subs):
+    '''
+    This function takes a dataframe and a subset dictionary and returns (a) a subset with outliers removed, and (b) only the outliers, both as dataframes.
+    '''
+    # Making local copy of dataframe (to avoid changing input).
+    df_local = dataF.copy()
+    
+    # Extracting outliers for each time point using matplotlib.cbook's boxplot_stats, and putting it into a list.
+    print('\nExtracting outliers...')
+    outliers = []
+    for i in subs:
+        outliers.append([y for stat in boxplot_stats(subs[i][norm]) for y in stat['fliers']])
+        
+    # Flatten to 2D list (non nested).
+    flat = []
+    for sublist in outliers:
+        for item in sublist:
+            flat.append(item)
+            
+    # Makes new column which determines if the yarg_n value is an outlier.
+    print('\nAssessing outliers...')
+    df_local['outlier'] = df_local[norm].isin(flat)
+    
+    # Make a list of dataframes, one with outliers removed, one with only outliers.
+    outDFs = []
+    # Making a dataframe of the outliers only.
+    outDFs.append(df_local[df_local[norm].isin(flat)])
+    # Making a dataframe with outlier values removed.
+    outDFs.append(df_local[~df_local[norm].isin(flat)])
+    
+    return outDFs
+
+
+def getDFstats(dataF):
+    '''
+    This function takes a dataframe and calculates some basic statistics for use in plotting, in the form of another dataframe.
+    '''
+    # Making a dataframe of general stats of the data.
+    dfstats = dataF.groupby('date')[norm].describe().reset_index()
+
+    # Convert data type for the date column into datetime.
+    dfstats['date'] = pd.to_datetime(dfstats['date'])
+
+    # Create columns for 1std over and under the mean.
+    dfstats['1std.over']=(dfstats['mean'] + dfstats['std'])
+    dfstats['1std.under']=(dfstats['mean'] - dfstats['std'])
+    
+    return dfstats
+
+
+def plotBoxes(dataF):
+    '''
+    This function takes a dataframe and will plot boxplots of the specified Y variable over time, with and without outliers, and a line graph showing the mean value and standard deviations.
+    '''
 
     # Boxplots of normalised yarg at each timepoint showing outliers.
-    boxplt = sns.catplot(x='date', y='yarg_n', data= dataF, kind = 'box')
+    boxplt = sns.catplot(x='date', y=norm, data= dataF, kind = 'box')
+    plt.title('Boxplot of normalised ' + yarg + ' over time, with outliers.')
     boxplt.fig.autofmt_xdate()
     
-    # Making a dataframe with outlier values removed.
-    df_noOutliers = dataF[~dataF['yarg_n'].isin(flat)]
+    # Getting modified dataframes with only the outliers, and then with outliers removed.
+    df_outliersOnly = outlierDF(dataF, date)[0]
+    df_noOutliers = outlierDF(dataF, date)[1]
 
-    # Making a dataframe of the outliers only.
-    df_outliersOnly = dataF[dataF['yarg_n'].isin(flat)]
-    
     # Boxplots of normalised yarg at each timepoint with outliers removed.
-    boxplt_clean = sns.catplot(x='date', y='yarg_n', data= df_noOutliers, kind = 'box')
+    boxplt_clean = sns.catplot(x='date', y=norm, data= df_noOutliers, kind = 'box')
+    plt.title('Boxplot of normalised ' + yarg + ' over time, without outliers.')
     boxplt_clean.fig.autofmt_xdate()
     
     # Line plot of the normalised yarg variable over time (without outliers). SD shown as shadow behind line.
     sns.set_style('darkgrid')
-    gmeans = sns.relplot(x='date', y='yarg_n', kind='line', ci='sd', data=df_noOutliers)
+    gmeans = sns.relplot(x='date', y=norm, kind='line', ci='sd', data=df_noOutliers)
+    plt.title('Line plot of normalised ' + yarg + ' over time.')
     gmeans.fig.autofmt_xdate()
-
-    # Scatterplot of only the outliers.
-    goutliers = sns.relplot(x='date', y='yarg_n', kind='scatter', ci='sd', data=df_outliersOnly)
-    goutliers.fig.autofmt_xdate()
-
+    
+    # Set figure size for later plots.
+    fig = plt.figure(figsize=(16,10))
+    
     # Line plot of the normalised yarg variable with outlier scatterpot overlaid. SD shown as shadow, as before.
     sns.set_style('darkgrid')
-    sns.lineplot(x='date', y='yarg_n', ci='sd', data=df_noOutliers),
-    sns.scatterplot(x='date', y='yarg_n', data=df_outliersOnly)
-    plt.title('Mean normalised " + yarg + " per month (with outliers)')
+    sns.lineplot(x='date', y=norm, ci='sd', data=df_noOutliers),
+    sns.scatterplot(x='date', y=norm, data=df_outliersOnly)
+    plt.title('Mean normalised ' + yarg + ' per month (with outliers)')
     fig.autofmt_xdate()
+    
+    return
+    
+def plotBokeh(dataF):
+    '''
+    This function takes a dataframe and plots an interactive graph with mouse-over info.
+    '''
+    # Create a CDS for bokeh to interact with pandas DF.
+    source = ColumnDataSource(getDFstats(dataF))
+    sourceOutliers = ColumnDataSource(outlierDF(dataF, date)[0])
+
+    output_file('Mean normalised ' + yarg + ' per month, with outliers. (mouse-over for values).html')
+    #output_notebook()
+
+    # Creating a bokeh figure.
+    plot = figure(title='Mean normalised ' + yarg + ' per month, with outliers. (mouse-over for values)', x_axis_label='date', y_axis_label='mean ' + yarg,
+               x_axis_type='datetime')
+
+    # Creating each plot.
+    mean = plot.line('date','mean',line_color='red', source=source)
+    outliers = plot.circle('date',norm, source=sourceOutliers, size =5)
+    upperci = plot.line('date', '1std.over', line_dash = 'dashed', source=source)
+    lowerci = plot.line('date', '1std.under', line_dash = 'dashed', source=source)
+
+    # Configuring mouse-over tooltip.
+    tooltips = [
+        ('Date','@date{%F}'),
+        ('Normalised ' + yarg, '@'+ norm +'{0,0.000}'),
+        ('practice','@row_name')
+    ]
+    formatters = {'date':'datetime'}
+    plot.add_tools(HoverTool(tooltips=tooltips, formatters=formatters, renderers=[outliers]))
+               
+    tooltips2= [
+        ('Date', '@date{%F}'),
+        ('Mean normalised ' + yarg, '@mean{0,0.000}')
+    ]
+    formatters2 = {'date':'datetime'}
+    plot.add_tools(HoverTool(tooltips=tooltips2, formatters=formatters2, mode='vline', renderers=[mean]))
+    
+    show(plot)
+    
+    return
+    
+    
+def plotGraphs(dataF, choice):
+    '''
+    This function takes a dataframe and a choice of plots to display, and plots those graphs.
+    '''
+    if choice == 1:
+        plotLine(dataF)
+    elif choice == 2:
+        plotBoxes(dataF)
+    elif choice == 3:
+        plotBokeh(dataF)
+    elif choice == 4:
+        plotLine(dataF)
+        plotBoxes(dataF)
+        plotBokeh(dataF)
+    else:
+        return 'Something went wrong!'
     
 
 # If both the below options are used, this will subset the dataframe by both.
@@ -201,7 +302,7 @@ if groupSubset != "all" and dateRange != "all":
     end = datetime.datetime.strptime(dr[1], '%Y-%m-%d')
     gS = groupSubset.split('|')
     df_both = df.loc[(pd.to_datetime(df['date']) >= start) & (pd.to_datetime(df['date']) <= end) & df[group].isin(gS)]
-    plotGraphs(df_both)
+    plotGraphs(df_both, plots)
 
 # If a date range is specified, this will create a subset of the main dataframe, within the date range.
 elif dateRange != "all":
@@ -209,17 +310,17 @@ elif dateRange != "all":
     start = datetime.datetime.strptime(dr[0], '%Y-%m-%d')
     end = datetime.datetime.strptime(dr[1], '%Y-%m-%d')
     df_dateRange = df.loc[(pd.to_datetime(df['date']) >= start) & (pd.to_datetime(df['date']) <= end)]
-    plotGraphs(df_dateRange)
+    plotGraphs(df_dateRange, plots)
     
 # If a subset of the grouping option is specified, this will create a subset of the dataframe, constrained to that subset.
 elif groupSubset != "all":
     gS = groupSubset.split('|')
     df_groupSubset = df.loc[df[group].isin(gS)]
-    plotGraphs(df_groupSubset)
+    plotGraphs(df_groupSubset, plots)
     
 # Plot xarg against yarg, grouped by group (no subset).
 else:
-    plotGraphs(df)
+    plotGraphs(df, plots)
 
 #Display the graphs.
 print('Displaying graphs...')
