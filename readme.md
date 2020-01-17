@@ -18,6 +18,6 @@ or
   
 ------
 
-Otherwise, supply an input dataset using the [-i] option, a column variable to plot on the x axis with [-x], another for the y axis with [-y], and one by which to group the data (e.g. by practice) with [-g]. You may also choose which graphs to plot and display, using the [--plots] option.
+Otherwise, supply an input dataset using the [-i] option, a column variable to plot on the x axis with [-x], another for the y axis with [-y], and one by which to group the data (e.g. by practice) with [-g]. You may also choose which graphs to plot and display, using the [--plots] option. The [--dateRange] and [--groupSubset] options are also available for narrowing the plots by date or by values from the grouping variable [-g].
 
 Use the [-h] option for more info.
