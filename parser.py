@@ -14,6 +14,8 @@ from scipy import stats
 import datetime
 import numpy as np
 import seaborn as sns
+from bokeh.plotting import figure, show, output_notebook, output_file, ColumnDataSource
+from bokeh.models import HoverTool
 
 # Specify command line arguments (including defaults for optional args)
 parser = argparse.ArgumentParser(description='Input a data file (in the form of an API link) and see some summary statistics for a time period of your choice. Use the -h option for info.')
@@ -153,15 +155,16 @@ def plotGraphs(dataF):
     It will also plot boxplots of the specified Y variable over time, with and without outliers.
     '''
     # Set figure size for later plots.
-    plt.figure(figsize=(24,16))
-    
+    fig = plt.figure(figsize=(24,16))
+
     # Line graph of specified columns.
     dataF.set_index(xarg, inplace=True)
-    lineplot = dataF.groupby(group)[yarg].plot(legend=True)
+    lineplot = dataF.groupby(group, as_index=False)[yarg].plot(legend=True)
     plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-       
+    dataF.reset_index(inplace=True)
+
     # Boxplots of normalised yarg at each timepoint showing outliers.
-    boxplt = sns.catplot(x= 'date', y=yarg_n, data= df, kind = 'box')
+    boxplt = sns.catplot(x='date', y='yarg_n', data= dataF, kind = 'box')
     boxplt.fig.autofmt_xdate()
     
     # Making a dataframe with outlier values removed.
@@ -171,22 +174,22 @@ def plotGraphs(dataF):
     df_outliersOnly = dataF[dataF['yarg_n'].isin(flat)]
     
     # Boxplots of normalised yarg at each timepoint with outliers removed.
-    boxplt_clean = sns.catplot(x='date', y=yarg_n, data= df_noOutliers, kind = 'box')
+    boxplt_clean = sns.catplot(x='date', y='yarg_n', data= df_noOutliers, kind = 'box')
     boxplt_clean.fig.autofmt_xdate()
     
     # Line plot of the normalised yarg variable over time (without outliers). SD shown as shadow behind line.
     sns.set_style('darkgrid')
-    gmeans = sns.relplot(x='date', y=yarg_n, kind='line', ci='sd', data=df_noOutliers)
+    gmeans = sns.relplot(x='date', y='yarg_n', kind='line', ci='sd', data=df_noOutliers)
     gmeans.fig.autofmt_xdate()
 
     # Scatterplot of only the outliers.
-    goutliers = sns.relplot(x='date', y=yarg_n, kind='scatter', ci='sd', data=df_outliersOnly)
+    goutliers = sns.relplot(x='date', y='yarg_n', kind='scatter', ci='sd', data=df_outliersOnly)
     goutliers.fig.autofmt_xdate()
 
     # Line plot of the normalised yarg variable with outlier scatterpot overlaid. SD shown as shadow, as before.
     sns.set_style('darkgrid')
-    sns.lineplot(x='date', y=yarg_n, ci='sd', data=df_noOutliers),
-    sns.scatterplot(x='date', y=yarg_n, data=df_outliersOnly)
+    sns.lineplot(x='date', y='yarg_n', ci='sd', data=df_noOutliers),
+    sns.scatterplot(x='date', y='yarg_n', data=df_outliersOnly)
     plt.title('Mean normalised " + yarg + " per month (with outliers)')
     fig.autofmt_xdate()
     
