@@ -20,7 +20,7 @@ from bokeh.models import HoverTool
 # Specify command line arguments (including defaults for optional args)
 parser = argparse.ArgumentParser(description='''Input a data file (in the form of an API link) and see some summary statistics for a time period of your choice. Use the -h option for info.
                                                 \n
-                                                Authors: Chris Pyatt \& Simon Lam''')
+                                                Authors: Chris Pyatt & Simon Lam''')
 group = parser.add_mutually_exclusive_group()
 parser.add_argument('-i', '--inFile', dest='inFile', default=None,
                     help='''Input data file URL (API) as a list encased in double-quotes and separated by single spaces, e.g. \"1\" or \"1 2\", etc. 
