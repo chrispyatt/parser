@@ -19,7 +19,6 @@ from bokeh.models import HoverTool
 
 # Specify command line arguments (including defaults for optional args)
 parser = argparse.ArgumentParser(description='''Input a data file (in the form of an API link) and see some summary statistics for a time period of your choice. Use the -h option for info.
-                                                \n
                                                 Authors: Chris Pyatt & Simon Lam''')
 group = parser.add_mutually_exclusive_group()
 parser.add_argument('-i', '--inFile', dest='inFile', default=None,
@@ -32,9 +31,11 @@ parser.add_argument('-y', '--y_axis', dest='y_axis', default=None,
 parser.add_argument('-g', '--groupby', dest='groupby', default=None,
                     help='''What column would you like to use (from your API data) to group the data (e.g. by practice)?''')
 parser.add_argument('--dateRange', dest='dateRange', default="all",
-                    help='''The range of dates (if x axis is time) for which to plot. Format as [date1|date2].''')
+                    help='''The range of dates (if x axis is time) for which to plot. Format as [date1|date2].
+                    This option is less robust and may fall over if the list is not formatted properly. Please be careful.''')
 parser.add_argument('--groupSubset', dest='groupSubset', default="all",
-                    help='''The subset of values (from the groupby) to actually plot. Format as [value1|value2|value3] etc.''')
+                    help='''The subset of values (from the groupby) to actually plot. Format as [value1|value2|value3] etc.
+                    This option is less robust and may fall over if the list is not formatted properly. Please be careful.''')
 group.add_argument('--test', dest='test', action="store_true",
                     help='''Run the test dataset to make sure things are working. Requires internet connection for test API. You can supply other options if you wish, but they will be overridden. 
                     If no internet access use --testOffline instead).''')
