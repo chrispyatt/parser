@@ -18,33 +18,39 @@ from bokeh.plotting import figure, show, output_notebook, output_file, ColumnDat
 from bokeh.models import HoverTool
 
 # Specify command line arguments (including defaults for optional args)
-parser = argparse.ArgumentParser(description='Input a data file (in the form of an API link) and see some summary statistics for a time period of your choice. Use the -h option for info.')
+parser = argparse.ArgumentParser(description='''Input a data file (in the form of an API link) and see some summary statistics for a time period of your choice. Use the -h option for info.''')
 group = parser.add_mutually_exclusive_group()
-parser.add_argument('-i', '--inFile', dest='inFile',
-                    help='Input data file URL (API), as a list, e.g. [1] or [1, 2]')
-parser.add_argument('-x', '--x_axis', dest='x_axis',
-                    help='What column would you like to use (from your API data) as the x-axis?')
-parser.add_argument('-y', '--y_axis', dest='y_axis',
-                    help='What column would you like to use (from your API data) as the y-axis?')
-parser.add_argument('-g', '--groupby', dest='groupby',
-                    help='What column would you like to use (from your API data) to group the data (e.g. by practice)?')
+parser.add_argument('-i', '--inFile', dest='inFile', default=None,
+                    help='''Input data file URL (API) as a list encased in double-quotes and separated by single spaces, e.g. \"1\" or \"1 2\", etc. 
+                    Failure to encase in quotes may result in parts of the URL being interpreted as commands.''')
+parser.add_argument('-x', '--x_axis', dest='x_axis', default=None,
+                    help='''What column would you like to use (from your API data) as the x-axis?''')
+parser.add_argument('-y', '--y_axis', dest='y_axis', default=None,
+                    help='''What column would you like to use (from your API data) as the y-axis?''')
+parser.add_argument('-g', '--groupby', dest='groupby', default=None,
+                    help='''What column would you like to use (from your API data) to group the data (e.g. by practice)?''')
 parser.add_argument('--dateRange', dest='dateRange', default="all",
-                    help='The range of dates (if x axis is time) for which to plot. Format as [date1|date2].')
+                    help='''The range of dates (if x axis is time) for which to plot. Format as [date1|date2].''')
 parser.add_argument('--groupSubset', dest='groupSubset', default="all",
-                    help='The subset of values (from the groupby) to actually plot. Format as [value1|value2|value3] etc.')
+                    help='''The subset of values (from the groupby) to actually plot. Format as [value1|value2|value3] etc.''')
 group.add_argument('--test', dest='test', action="store_true",
-                    help='Run the test dataset to make sure things are working. Requires internet connection for test API. If no internet access use --testOffline instead)')
+                    help='''Run the test dataset to make sure things are working. Requires internet connection for test API. You can supply other options if you wish, but they will be overridden. 
+                    If no internet access use --testOffline instead).''')
 group.add_argument('--testOffline', dest='testOffline', action="store_true",
-                    help='Run the offline test dataset to make sure things are working (if you have no internet access and therefore no access to the test API).')
-group.add_argument('--plots', dest='plots', choices=[1,2,3,4],
-                    help='''Choose which plots you\'d like to display. Option 1 will display a line graph of your chosen variables (this can be unwieldy with larger datasets so we advise only using this plot for smaller subsets). 
-                            Option 2 will display boxplots and line graphs showing outliers and standard deviation. Option 3 will display an interactive Bokeh graph of the same information as option 2, with mouse-over functionality.
-                            Option 4 will display all of the above.''')
+                    help='''Run the offline test dataset to make sure things are working (if you have no internet access and therefore no access to the test API). 
+                    You can supply other options if you wish, but they will be overridden. 
+                    Bear in mind that this tests whether something is plotted, but is not useful data in itself.''')
+parser.add_argument('--plots', dest='plots', choices=['1','2','3','4'], default='4',
+                    help='''Choose which plots you\'d like to display. Option 1 will display a line graph of your chosen variables 
+                    (this can be unwieldy with larger datasets so we advise only using this plot for smaller subsets). 
+                    Option 2 will display boxplots and line graphs showing outliers and standard deviation. 
+                    Option 3 will display an interactive graph of the same information as option 2, with mouse-over functionality.
+                    Option 4 will display all of the above (this is the default behaviour).''')
 
 
 # Set given arguments to variables to be used later.
 args = parser.parse_args()
-inFile = args.inFile
+inFile = args.inFile.split(" ")
 xarg = args.x_axis
 yarg = args.y_axis
 group = args.groupby
@@ -55,26 +61,33 @@ testOffline = args.testOffline
 plots = args.plots
 
 
+def checkOptions():
+    if inFile != None and xarg != None and yarg != None and group != None:
+        return True
+    else:
+        return False
+
+
 # If the test option is set to True, this will run a test analysis.
 if test:
-    inFile = ['https://openprescribing.net/api/1.0/spending_by_practice/?code=5.1&org=14L&format=json', 'https://openprescribing.net/api/1.0/org_details/?org_type=practice&org=14L&keys=total_list_size&format=json']
+    inFile = 'https://openprescribing.net/api/1.0/spending_by_practice/?code=5.1&org=14L&format=json https://openprescribing.net/api/1.0/org_details/?org_type=practice&org=14L&keys=total_list_size&format=json'
     xarg = 'date'
     yarg = 'quantity'
     group = 'row_name'
     dateRange = '2017-04-01|2018-04-01'
     groupSubset = 'all'
-    plots = 3
+    plots = '4'
     
 
-# If the testOffline option is set to True, this will run a test analysis without reliance on an internet connection.
+# If the testOffline option is set to True, this will run a test analysis without reliance on an internet connection This messes up the dataframe a bit but the point is to test whether the program plots something..
 if testOffline:
-    inFile = ['spending-by-practice-0501.csv', 'list_size.csv']
+    inFile = 'spending-by-practice-0501.csv list_size.csv'
     xarg = 'date'
     yarg = 'quantity'
     group = 'row_name'
     dateRange = '2017-04-01|2018-04-01'
     groupSubset = 'all'
-    plots = 4
+    plots = '4'
     df_list = []
     for inp in inFile:
         df_list.append(pd.read_csv(inp))
@@ -88,6 +101,10 @@ if testOffline:
             df = df.loc[:,~df.columns.duplicated()]
 
 else:
+    # Check required command line options have been given.
+    if checkOptions() != True:
+        exit('\nPlease supply options using [-i], [-x], [-y], and [-g]. Otherwise use [--test] or [--testOffline] to test the program, or [-h] to see the user manual.')
+    
     # Get data from each API (& check for error codes), then merge into single dataframe.
     print('\nRetrieving data...')
     df_list = []
@@ -97,7 +114,7 @@ else:
             #print(resp.json())
             print(resp.status_code)
         except:
-            print("An error occured! Please check the input API.")
+            exit("\nAn error occured! Please check the input API.")
 
         # Get nested json into flat dataframe.
         df_list.append(pd.io.json.json_normalize(resp.json()))
@@ -281,13 +298,13 @@ def plotGraphs(dataF, choice):
     '''
     This function takes a dataframe and a choice of plots to display, and plots those graphs.
     '''
-    if choice == 1:
+    if choice == '1':
         plotLine(dataF)
-    elif choice == 2:
+    elif choice == '2':
         plotBoxes(dataF)
-    elif choice == 3:
+    elif choice == '3':
         plotBokeh(dataF)
-    elif choice == 4:
+    elif choice == '4':
         plotLine(dataF)
         plotBoxes(dataF)
         plotBokeh(dataF)
